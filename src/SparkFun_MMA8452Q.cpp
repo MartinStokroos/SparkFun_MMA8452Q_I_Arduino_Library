@@ -19,7 +19,17 @@ This code is beerware; if you see me (or any other SparkFun employee) at the
 local, and you've found our code helpful, please buy us a round!
 
 Distributed as-is; no warranty is given.
+******************************************************************************
+
+Extended library functionalities by Martin Stokroos, November 18, 2022.
+https://github.com/MartinStokroos/SparkFun_MMA8452Q_I_Arduino_Library
+
+- added data ready interrupt, routable to pin INT1 or INT2
+- added high pass filter frequency setting
+
+Acknowledgements goes to to the SparkFun team.
 ******************************************************************************/
+
 
 #include "SparkFun_MMA8452Q.h"
 #include <Arduino.h>
@@ -51,8 +61,8 @@ bool MMA8452Q::begin(TwoWire &wirePort, uint8_t deviceAddress)
 		return false;
 	}
 
-	scale = SCALE_2G;
-	odr = ODR_800;
+	scale = SCALE_2G; // default sensitivity
+	odr = ODR_100; // default data rate
 
 	setScale(scale);  // Set up accelerometer scale
 	setDataRate(odr); // Set up output data rate
@@ -221,6 +231,56 @@ void MMA8452Q::setDataRate(MMA8452Q_ODR odr)
 	// Must be in active state to read data
 	active();
 }
+
+void MMA8452Q::enDataIrq(MMA8452Q_INT iout)
+{
+	// Must be in standby mode to make changes!!!
+	// Change to standby if currently in active state
+	if (isActive() == true)
+		standby();
+
+	byte ctrl = readRegister(CTRL_REG4);
+	//ctrl &= 0x01; // Mask out data rate bits
+	ctrl |= 0x01;
+	writeRegister(CTRL_REG4, ctrl);
+
+	ctrl = readRegister(CTRL_REG5);
+	ctrl &= 0xFE; // Mask out data rate bits
+	ctrl |= iout;
+	writeRegister(CTRL_REG5, ctrl);
+
+	// Return to active state when done
+	// Must be in active state to read data
+	active();
+}
+
+void MMA8452Q::setFilter(MMA8452Q_Filter cutoff)
+{
+	// Must be in standby mode to make changes!!!
+	// Change to standby if currently in active state
+	if (isActive() == true)
+		standby();
+
+	byte ctrl = readRegister(HP_FILTER_CUTOFF);
+	cutoff &= 0x02; // truncate to two SEL bits.
+	ctrl |= cutoff;
+	writeRegister(HP_FILTER_CUTOFF, ctrl);
+
+	// Return to active state when done
+	// Must be in active state to read data
+	active();
+}
+
+void MMA8452Q::disDataIrq()
+{
+
+}
+
+byte MMA8452Q::dataIrq()
+{
+	return ( readRegister(INT_SOURCE) & 0x01 );
+}
+
 
 // SET UP TAP DETECTION
 //	This function can set up tap detection on the x, y, and/or z axes.

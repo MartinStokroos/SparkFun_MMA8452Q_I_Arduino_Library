@@ -18,6 +18,15 @@ This code is beerware; if you see me (or any other SparkFun employee) at the
 local, and you've found our code helpful, please buy us a round!
 
 Distributed as-is; no warranty is given.
+******************************************************************************
+
+Extended library functionalities by Martin Stokroos, November 18, 2022.
+https://github.com/MartinStokroos/SparkFun_MMA8452Q_I_Arduino_Library
+
+- added data ready interrupt, routable to pin INT1 or INT2
+- added high pass filter frequency setting
+
+Acknowledgements goes to to the SparkFun team.
 ******************************************************************************/
 
 #ifndef SparkFun_MMA8452Q_h
@@ -84,6 +93,7 @@ enum MMA8452Q_Scale
 	SCALE_4G = 4,
 	SCALE_8G = 8
 }; // Possible full-scale settings
+
 enum MMA8452Q_ODR
 {
 	ODR_800,
@@ -95,6 +105,21 @@ enum MMA8452Q_ODR
 	ODR_6,
 	ODR_1
 }; // possible data rates
+
+enum MMA8452Q_Filter
+{
+	HPASS_3,
+	HPASS_2,
+	HPASS_1,
+	HPASS_0		// Lowest freq.
+};
+
+enum MMA8452Q_INT
+{
+	INT_1 = 1,
+	INT_2 = 0
+}; // possible INT outputs
+
 // Possible portrait/landscape settings
 #define PORTRAIT_U 0
 #define PORTRAIT_D 1
@@ -103,7 +128,7 @@ enum MMA8452Q_ODR
 #define LOCKOUT 0x40
 #define MMA8452Q_DEFAULT_ADDRESS 0x1D
 
-// Posible SYSMOD (system mode) States
+// Possible SYSMOD (system mode) States
 #define SYSMOD_STANDBY 0b00
 #define SYSMOD_WAKE 0b01
 #define SYSMOD_SLEEP 0b10
@@ -117,6 +142,7 @@ class MMA8452Q
 	MMA8452Q(byte addr = MMA8452Q_DEFAULT_ADDRESS); // Constructor
 	MMA8452Q_Scale scale;
 	MMA8452Q_ODR odr;
+	MMA8452Q_INT iout;
 
 	bool begin(TwoWire &wirePort = Wire, uint8_t deviceAddress = MMA8452Q_DEFAULT_ADDRESS);
 	byte init(MMA8452Q_Scale fsr = SCALE_2G, MMA8452Q_ODR odr = ODR_800);
@@ -145,6 +171,10 @@ class MMA8452Q
 
 	void setScale(MMA8452Q_Scale fsr);
 	void setDataRate(MMA8452Q_ODR odr);
+	void setFilter(MMA8452Q_Filter cutoff);
+	void enDataIrq(MMA8452Q_INT iout = INT_1);
+	void disDataIrq();
+	byte dataIrq();
 
   private:
 	TwoWire *_i2cPort = NULL; //The generic connection to user's chosen I2C hardware
